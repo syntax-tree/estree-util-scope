@@ -176,6 +176,40 @@ test('scope creation', async function (t) {
     assert(called)
   })
 
+  await t.test('should work on anonymous function declarations', function () {
+    const tree = /** @type {Program} */ (
+      Parser.parse('export default function(b) { return b + 1 }', {
+        ecmaVersion: 'latest',
+        sourceType: 'module'
+      })
+    )
+    let called = false
+    const visitors = createVisitors()
+
+    walk(tree, {
+      enter: visitors.enter,
+      leave(node) {
+        if (node.type === 'FunctionDeclaration') {
+          called = true
+          assert.deepEqual(visitors.scopes.at(-1), {
+            block: false,
+            defined: ['b']
+          })
+        } else if (node.type === 'Program') {
+          called = true
+          assert.deepEqual(visitors.scopes.at(-1), {
+            block: false,
+            defined: []
+          })
+        }
+
+        visitors.exit(node)
+      }
+    })
+
+    assert(called)
+  })
+
   await t.test('should work on function expressions', function () {
     const tree = /** @type {Program} */ (
       Parser.parse('const a = function b(c) { return c + 1 }', {
